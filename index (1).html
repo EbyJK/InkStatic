@@ -1,0 +1,692 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ink & Static — two CSS/SVG tricks</title>
+<style>
+  :root{
+    --ink: #0c1416;
+    --ink-2: #121e21;
+    --teal: #5eead4;
+    --amber: #e8b86d;
+    --fog: #b9c7c6;
+    --white: #eef5f4;
+    --mono: 'JetBrains Mono', 'Courier New', monospace;
+    --serif: Georgia, 'Iowan Old Style', 'Times New Roman', serif;
+  }
+
+  * { box-sizing: border-box; margin:0; padding:0; }
+
+  body{
+    background: var(--ink);
+    color: var(--white);
+    font-family: var(--serif);
+    min-height: 100vh;
+    overflow-x: hidden;
+    cursor: none;
+  }
+
+  ::selection{ background: var(--teal); color: var(--ink); }
+
+  /* ---------- custom cursor dot (real cursor hidden) ---------- */
+  #cursor-dot{
+    position: fixed;
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--teal);
+    pointer-events: none;
+    z-index: 999;
+    transform: translate(-50%,-50%);
+    transition: transform .08s ease;
+  }
+
+  @media (hover: none){
+    body{ cursor: auto; }
+    #cursor-dot{ display:none; }
+  }
+
+  header{
+    padding: 8vh 8vw 4vh;
+    max-width: 900px;
+  }
+
+  .eyebrow{
+    font-family: var(--mono);
+    font-size: 12px;
+    letter-spacing: 0.28em;
+    text-transform: uppercase;
+    color: var(--teal);
+    margin-bottom: 18px;
+  }
+
+  h1{
+    font-size: clamp(2.4rem, 6vw, 4.6rem);
+    line-height: 1.02;
+    font-weight: 400;
+    letter-spacing: -0.02em;
+  }
+
+  h1 .accent{ color: var(--teal); font-style: italic; }
+
+  .lede{
+    margin-top: 22px;
+    max-width: 52ch;
+    color: var(--fog);
+    font-size: 1.08rem;
+    line-height: 1.6;
+  }
+
+  section{
+    padding: 6vh 8vw;
+    max-width: 1100px;
+  }
+
+  .section-label{
+    font-family: var(--mono);
+    font-size: 12px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--amber);
+    display:flex;
+    align-items:center;
+    gap: 12px;
+    margin-bottom: 28px;
+  }
+
+  .section-label::after{
+    content:'';
+    flex:1;
+    height:1px;
+    background: rgba(255,255,255,0.12);
+  }
+
+  p.explain{
+    color: var(--fog);
+    max-width: 60ch;
+    line-height: 1.65;
+    margin-bottom: 36px;
+    font-size: 0.98rem;
+  }
+
+  code{
+    font-family: var(--mono);
+    background: rgba(94,234,212,0.1);
+    color: var(--teal);
+    padding: 1px 6px;
+    border-radius: 4px;
+    font-size: 0.9em;
+  }
+
+  /* ---------- GOO SECTION ---------- */
+  .goo-stage{
+    position: relative;
+    height: 360px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    filter: url(#goo);
+  }
+
+  .blob-cursor{
+    position: absolute;
+    width: 46px; height: 46px;
+    border-radius: 50%;
+    background: var(--teal);
+    left: 0; top: 0;
+    pointer-events: none;
+    transform: translate(-50%,-50%);
+  }
+
+  .goo-btn{
+    position: relative;
+    width: 92px; height: 92px;
+    border-radius: 50%;
+    background: var(--teal);
+    display: flex;
+    align-items:center;
+    justify-content:center;
+    color: var(--ink);
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    text-align:center;
+    margin: 0 18px;
+    border: none;
+    cursor: pointer;
+  }
+
+  .goo-btn.small{ width: 64px; height: 64px; font-size: 10px; }
+
+  /* label layer sits above the blur filter so text stays crisp */
+  .goo-labels{
+    position: absolute;
+    inset: 0;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    pointer-events: none;
+  }
+  .goo-labels span{
+    position:absolute;
+    color: var(--ink);
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+
+  /* ---------- SCRAMBLE SECTION ---------- */
+  .scramble-block{
+    padding: 40px;
+    background: var(--ink-2);
+    border-radius: 4px;
+    border: 1px solid rgba(255,255,255,0.06);
+  }
+
+  .scramble-line{
+    font-family: var(--mono);
+    font-size: clamp(1.1rem, 2.6vw, 1.7rem);
+    color: var(--white);
+    margin-bottom: 14px;
+    min-height: 1.4em;
+  }
+
+  .scramble-line .cur{ color: var(--teal); }
+
+  button.trigger{
+    margin-top: 20px;
+    font-family: var(--mono);
+    font-size: 12px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    background: transparent;
+    border: 1px solid var(--teal);
+    color: var(--teal);
+    padding: 10px 20px;
+    cursor: pointer;
+    transition: background .15s ease, color .15s ease;
+  }
+  button.trigger:hover{ background: var(--teal); color: var(--ink); }
+  button.trigger:focus-visible{ outline: 2px solid var(--amber); outline-offset: 3px; }
+
+  footer{
+    padding: 6vh 8vw 8vh;
+    color: var(--fog);
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.05em;
+    display:flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 10px;
+    border-top: 1px solid rgba(255,255,255,0.08);
+    max-width: 1100px;
+    margin: 0 auto;
+  }
+
+  footer a{ color: var(--teal); text-decoration: none; }
+
+  @media (max-width: 640px){
+    .goo-stage{ height: 280px; }
+    .goo-btn{ width: 68px; height: 68px; margin: 0 10px; }
+    .goo-btn.small{ width: 48px; height: 48px; }
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    *{ transition: none !important; animation: none !important; }
+  }
+
+  /* ---------- header code button ---------- */
+  .header-row{
+    display:flex;
+    align-items:flex-start;
+    justify-content:space-between;
+    gap: 24px;
+    flex-wrap: wrap;
+  }
+
+  .code-btn{
+    font-family: var(--mono);
+    font-size: 12px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    background: var(--ink-2);
+    border: 1px solid rgba(94,234,212,0.35);
+    color: var(--teal);
+    padding: 10px 16px;
+    border-radius: 4px;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background .15s ease, border-color .15s ease;
+    display:flex;
+    align-items:center;
+    gap: 8px;
+  }
+  .code-btn:hover{ background: rgba(94,234,212,0.12); border-color: var(--teal); }
+  .code-btn:focus-visible{ outline: 2px solid var(--amber); outline-offset: 3px; }
+  .code-btn svg{ width:14px; height:14px; }
+
+  .snippet-btn{
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    background: none;
+    border: 1px solid rgba(255,255,255,0.18);
+    color: var(--fog);
+    padding: 7px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    margin-bottom: 28px;
+    transition: border-color .15s ease, color .15s ease;
+  }
+  .snippet-btn:hover{ border-color: var(--teal); color: var(--teal); }
+  .snippet-btn:focus-visible{ outline: 2px solid var(--amber); outline-offset: 3px; }
+
+  /* ---------- modal ---------- */
+  .modal-overlay{
+    position: fixed;
+    inset: 0;
+    background: rgba(4,8,9,0.72);
+    backdrop-filter: blur(3px);
+    display:none;
+    align-items:center;
+    justify-content:center;
+    z-index: 1000;
+    padding: 24px;
+    cursor: auto;
+  }
+  .modal-overlay.open{ display:flex; }
+
+  .modal{
+    background: var(--ink-2);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 6px;
+    max-width: 720px;
+    width: 100%;
+    max-height: 82vh;
+    display:flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .modal-head{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    padding: 18px 22px;
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+  }
+
+  .modal-title{
+    font-family: var(--mono);
+    font-size: 12px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--teal);
+  }
+
+  .modal-close{
+    background:none;
+    border:none;
+    color: var(--fog);
+    font-size: 20px;
+    line-height: 1;
+    cursor:pointer;
+    padding: 4px 8px;
+  }
+  .modal-close:hover{ color: var(--white); }
+  .modal-close:focus-visible{ outline: 2px solid var(--amber); }
+
+  .modal-tabs{
+    display:flex;
+    gap: 4px;
+    padding: 14px 22px 0;
+  }
+
+  .modal-tab{
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    background: none;
+    border: none;
+    border-bottom: 2px solid transparent;
+    color: var(--fog);
+    padding: 8px 4px 12px;
+    margin-right: 20px;
+    cursor: pointer;
+  }
+  .modal-tab.active{ color: var(--teal); border-bottom-color: var(--teal); }
+  .modal-tab:focus-visible{ outline: 2px solid var(--amber); }
+
+  .modal-body{
+    padding: 18px 22px 22px;
+    overflow-y: auto;
+  }
+
+  .modal-body pre{
+    background: var(--ink);
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 4px;
+    padding: 16px;
+    font-family: var(--mono);
+    font-size: 12.5px;
+    line-height: 1.6;
+    color: var(--white);
+    overflow-x: auto;
+    white-space: pre;
+  }
+
+  .modal-panel{ display:none; }
+  .modal-panel.active{ display:block; }
+
+  .copy-row{
+    display:flex;
+    justify-content:flex-end;
+    margin-bottom: 10px;
+  }
+
+  .copy-btn{
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    background: var(--teal);
+    color: var(--ink);
+    border: none;
+    padding: 7px 14px;
+    border-radius: 4px;
+    cursor: pointer;
+  }
+  .copy-btn:focus-visible{ outline: 2px solid var(--amber); outline-offset: 2px; }
+  .copy-btn.copied{ background: var(--amber); }
+</style>
+</head>
+<body>
+
+<div id="cursor-dot"></div>
+
+<!-- SVG filter definition for the goo effect: blur then sharpen the alpha channel -->
+<svg width="0" height="0" style="position:absolute">
+  <filter id="goo">
+    <feGaussianBlur in="SourceGraphic" stdDeviation="10" result="blur" />
+    <feColorMatrix in="blur" mode="matrix"
+      values="1 0 0 0 0
+              0 1 0 0 0
+              0 0 1 0 0
+              0 0 0 22 -10" result="goo" />
+    <feComposite in="SourceGraphic" in2="goo" operator="atop"/>
+  </filter>
+</svg>
+
+<header>
+  <div class="header-row">
+    <div>
+      <div class="eyebrow">Two tricks, one afternoon</div>
+      <h1>Things that <span class="accent">melt</span><br>and things that <span class="accent">decode</span>.</h1>
+      <p class="lede">A small playground for two CSS/SVG effects that look far more complicated than they are. No frameworks, no build step — open the file and it runs.</p>
+    </div>
+    <button class="code-btn" id="openCodeModal" aria-haspopup="dialog">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+      Get the code
+    </button>
+  </div>
+</header>
+
+<section>
+  <div class="section-label">01 — the goo effect</div>
+  <p class="explain">Move your cursor over the circles below. The trick isn't physics — it's an SVG filter. We blur everything, then use a color matrix to snap soft edges back to hard ones (<code>feColorMatrix</code>). Wherever two blurred shapes overlap, the sharpen step fuses them into one blob.</p>
+  <button class="snippet-btn" data-open-tab="goo">&lt;/&gt; copy this snippet</button>
+
+  <div class="goo-stage" id="gooStage">
+    <div class="blob-cursor" id="blobCursor"></div>
+    <button class="goo-btn">Hover</button>
+    <button class="goo-btn small">Me</button>
+    <button class="goo-btn">I merge</button>
+  </div>
+</section>
+
+<section>
+  <div class="section-label">02 — the decode effect</div>
+  <p class="explain">This one's pure JavaScript, no library. Each frame, we swap a few characters for random symbols and lock one more real character in place from the left. It reads like a terminal cracking a password — but it's about 20 lines of code.</p>
+  <button class="snippet-btn" data-open-tab="scramble">&lt;/&gt; copy this snippet</button>
+
+  <div class="scramble-block">
+    <div class="scramble-line" data-text="SOME EFFECTS LOOK HARDER THAN THEY ARE." id="line1">SOME EFFECTS LOOK HARDER THAN THEY ARE.</div>
+    <div class="scramble-line" data-text="THE TRICK IS KNOWING WHICH ONES." id="line2">THE TRICK IS KNOWING WHICH ONES.</div>
+    <button class="trigger" id="runScramble">Run again</button>
+  </div>
+</section>
+
+<footer>
+  <span>Built with CSS filters + vanilla JS · no dependencies</span>
+  <span>Inspired by a classmate's liquid-glass playground — different trick, same spirit</span>
+</footer>
+
+<div class="modal-overlay" id="codeModal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+  <div class="modal">
+    <div class="modal-head">
+      <span class="modal-title" id="modalTitle">Get the code</span>
+      <button class="modal-close" id="closeCodeModal" aria-label="Close">&times;</button>
+    </div>
+    <div class="modal-tabs">
+      <button class="modal-tab active" data-tab="goo">Goo effect</button>
+      <button class="modal-tab" data-tab="scramble">Scramble effect</button>
+    </div>
+    <div class="modal-body">
+      <div class="modal-panel active" data-panel="goo">
+        <div class="copy-row"><button class="copy-btn" data-target="goo-snippet">Copy</button></div>
+        <pre id="goo-snippet">&lt;!-- 1. Define the filter once, anywhere on the page --&gt;
+&lt;svg width="0" height="0" style="position:absolute"&gt;
+  &lt;filter id="goo"&gt;
+    &lt;feGaussianBlur in="SourceGraphic" stdDeviation="10" result="blur" /&gt;
+    &lt;feColorMatrix in="blur" mode="matrix"
+      values="1 0 0 0 0
+              0 1 0 0 0
+              0 0 1 0 0
+              0 0 0 22 -10" result="goo" /&gt;
+    &lt;feComposite in="SourceGraphic" in2="goo" operator="atop"/&gt;
+  &lt;/filter&gt;
+&lt;/svg&gt;
+
+/* 2. Apply it to any container holding shapes that should merge */
+.goo-stage {
+  filter: url(#goo);
+}
+
+/* 3. Shapes inside just need to be solid + circular (or any shape) */
+.blob, .goo-btn {
+  border-radius: 50%;
+  background: teal;
+}
+
+/* Tip: raise stdDeviation for a softer/wider melt,
+   raise the "22" in the matrix for a sharper snap. */</pre>
+      </div>
+      <div class="modal-panel" data-panel="scramble">
+        <div class="copy-row"><button class="copy-btn" data-target="scramble-snippet">Copy</button></div>
+        <pre id="scramble-snippet">const CHARS = '!&lt;&gt;-_\\/[]{}—=+*^?#________';
+
+class Scrambler {
+  constructor(el) {
+    this.el = el;
+    this.finalText = el.dataset.text; // put target text in data-text
+    this.frame = 0;
+    this.queue = [];
+    this.update = this.update.bind(this);
+  }
+  run() {
+    const length = this.finalText.length;
+    this.queue = [];
+    for (let i = 0; i < length; i++) {
+      const start = Math.floor(Math.random() * 20);
+      const end = start + Math.floor(Math.random() * 20);
+      this.queue.push({ to: this.finalText[i], start, end, char: '' });
+    }
+    this.frame = 0;
+    this.update();
+  }
+  update() {
+    let output = '';
+    let complete = 0;
+    for (let i = 0; i < this.queue.length; i++) {
+      let { to, start, end, char } = this.queue[i];
+      if (this.frame >= end) {
+        complete++;
+        output += to;
+      } else if (this.frame >= start) {
+        if (!char || Math.random() < 0.3) {
+          char = CHARS[Math.floor(Math.random() * CHARS.length)];
+          this.queue[i].char = char;
+        }
+        output += `&lt;span class="cur"&gt;${char}&lt;/span&gt;`;
+      } else {
+        output += '&amp;nbsp;';
+      }
+    }
+    this.el.innerHTML = output;
+    if (complete === this.queue.length) return;
+    this.frame++;
+    requestAnimationFrame(this.update);
+  }
+}
+
+// usage: &lt;div data-text="YOUR TEXT HERE"&gt;&lt;/div&gt;
+const s = new Scrambler(document.querySelector('[data-text]'));
+s.run();</pre>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  // ---------- custom cursor + goo blob follow ----------
+  const dot = document.getElementById('cursor-dot');
+  const blob = document.getElementById('blobCursor');
+  const stage = document.getElementById('gooStage');
+
+  window.addEventListener('mousemove', (e) => {
+    dot.style.left = e.clientX + 'px';
+    dot.style.top = e.clientY + 'px';
+  });
+
+  stage.addEventListener('mousemove', (e) => {
+    const rect = stage.getBoundingClientRect();
+    blob.style.left = (e.clientX - rect.left) + 'px';
+    blob.style.top = (e.clientY - rect.top) + 'px';
+    blob.style.opacity = 1;
+  });
+  stage.addEventListener('mouseleave', () => { blob.style.opacity = 0; });
+  blob.style.opacity = 0;
+
+  // ---------- text scramble effect ----------
+  const CHARS = '!<>-_\\/[]{}—=+*^?#________';
+
+  class Scrambler{
+    constructor(el){
+      this.el = el;
+      this.finalText = el.dataset.text;
+      this.frame = 0;
+      this.queue = [];
+      this.frameRequest = null;
+      this.resolve = null;
+      this.update = this.update.bind(this);
+    }
+    run(){
+      const length = this.finalText.length;
+      this.queue = [];
+      for(let i = 0; i < length; i++){
+        const start = Math.floor(Math.random() * 20);
+        const end = start + Math.floor(Math.random() * 20);
+        this.queue.push({ to: this.finalText[i], start, end, char: '' });
+      }
+      cancelAnimationFrame(this.frameRequest);
+      this.frame = 0;
+      this.update();
+    }
+    update(){
+      let output = '';
+      let complete = 0;
+      for(let i = 0; i < this.queue.length; i++){
+        let { to, start, end, char } = this.queue[i];
+        if(this.frame >= end){
+          complete++;
+          output += to;
+        } else if(this.frame >= start){
+          if(!char || Math.random() < 0.3){
+            char = CHARS[Math.floor(Math.random() * CHARS.length)];
+            this.queue[i].char = char;
+          }
+          output += `<span class="cur">${char}</span>`;
+        } else {
+          output += '&nbsp;';
+        }
+      }
+      this.el.innerHTML = output;
+      if(complete === this.queue.length){
+        return;
+      }
+      this.frame++;
+      this.frameRequest = requestAnimationFrame(this.update);
+    }
+  }
+
+  const s1 = new Scrambler(document.getElementById('line1'));
+  const s2 = new Scrambler(document.getElementById('line2'));
+
+  function runAll(){
+    s1.run();
+    setTimeout(() => s2.run(), 200);
+  }
+
+  document.getElementById('runScramble').addEventListener('click', runAll);
+  window.addEventListener('load', runAll);
+
+  // ---------- code modal ----------
+  const modal = document.getElementById('codeModal');
+  const tabs = modal.querySelectorAll('.modal-tab');
+  const panels = modal.querySelectorAll('.modal-panel');
+
+  function openModal(tab){
+    modal.classList.add('open');
+    if(tab) setTab(tab);
+    modal.querySelector('.modal-close').focus();
+  }
+  function closeModal(){
+    modal.classList.remove('open');
+  }
+  function setTab(name){
+    tabs.forEach(t => t.classList.toggle('active', t.dataset.tab === name));
+    panels.forEach(p => p.classList.toggle('active', p.dataset.panel === name));
+  }
+
+  document.getElementById('openCodeModal').addEventListener('click', () => openModal());
+  document.querySelectorAll('[data-open-tab]').forEach(btn => {
+    btn.addEventListener('click', () => openModal(btn.dataset.openTab));
+  });
+  document.getElementById('closeCodeModal').addEventListener('click', closeModal);
+  modal.addEventListener('click', (e) => { if(e.target === modal) closeModal(); });
+  window.addEventListener('keydown', (e) => { if(e.key === 'Escape' && modal.classList.contains('open')) closeModal(); });
+
+  tabs.forEach(tab => tab.addEventListener('click', () => setTab(tab.dataset.tab)));
+
+  document.querySelectorAll('.copy-btn').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const target = document.getElementById(btn.dataset.target);
+      try{
+        await navigator.clipboard.writeText(target.innerText);
+        btn.textContent = 'Copied';
+        btn.classList.add('copied');
+        setTimeout(() => { btn.textContent = 'Copy'; btn.classList.remove('copied'); }, 1600);
+      }catch(err){
+        btn.textContent = 'Press Ctrl+C';
+      }
+    });
+  });
+</script>
+
+</body>
+</html>
