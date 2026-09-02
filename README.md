@@ -2,7 +2,7 @@
 
 Two CSS/SVG effects that look far more complicated than they are — a gooey "liquid" merge effect and a terminal-style text decode animation. No frameworks, no build step, no dependencies.
 
-**[Live demo →](#)** *(replace with your GitHub Pages link once deployed)*
+**[Live demo →](#)** https://ebyjk.github.io/InkStatic/
 
 ## What's inside
 
@@ -42,7 +42,7 @@ Both snippets are also copyable directly from the live site via the "Get the cod
 
 ## Why this exists
 
-Built as a small, low-effort/high-payoff exploration of SVG filters and canvas-free animation — inspired by seeing a classmate's [liquid glass](#) playground and wanting to try a different corner of the same idea space (CSS/SVG tricks that look harder than they are).
+Built as a small, low-effort/high-payoff exploration of SVG filters and canvas-free animation.
 
 ## License
 
